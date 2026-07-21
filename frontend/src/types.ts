@@ -38,12 +38,21 @@ export interface Correction {
   after: string;
 }
 
+/** 화자 본인의 기여를 1인칭 STAR(상황·과제·행동·결과) 문장으로 정리한 개인 성과 기록. */
+export interface PersonalStar {
+  situation: string;
+  task: string;
+  action: string;
+  result: string;
+}
+
 /** POST /api/process-meeting의 응답. 모든 문자열 필드는 토큰 상태 그대로 온다. */
 export interface MeetingProcessResult {
   corrections: Correction[];
   summary: string;
   decisions: string[];
   tasks: Task[];
+  personalStar: PersonalStar;
   _meta?: {
     model?: string;
     stopReason?: string;
@@ -51,9 +60,7 @@ export interface MeetingProcessResult {
   };
 }
 
-export type Screen = "home" | "input" | "processing" | "result";
-
-export type View = "flow" | "dashboard";
+export type Screen = "home" | "input" | "processing" | "result" | "dashboard";
 
 /** 회의 1건의 처리 결과를 브라우저(localStorage)에 누적 저장하기 위한 레코드. */
 export interface MeetingRecord {
@@ -62,4 +69,6 @@ export interface MeetingRecord {
   summary: string;
   decisions: string[];
   tasks: Task[];
+  /** 이 필드가 추가되기 전에 저장된 기존 기록에는 없을 수 있다(optional). */
+  personalStar?: PersonalStar;
 }

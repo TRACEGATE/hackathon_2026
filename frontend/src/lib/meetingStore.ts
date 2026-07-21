@@ -1,4 +1,4 @@
-import type { MeetingRecord, Task } from "../types";
+import type { MeetingRecord, PersonalStar, Task } from "../types";
 
 const STORAGE_KEY = "veilnote_meetings_v2";
 
@@ -22,12 +22,23 @@ function persist(records: MeetingRecord[]): void {
   }
 }
 
+/** 저장된 모든 회의 기록을 삭제한다. */
+export function clearMeetings(): MeetingRecord[] {
+  try {
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // 프라이빗 모드 등 localStorage를 사용할 수 없는 환경 — 삭제 실패는 무시하고 진행
+  }
+  return [];
+}
+
 /** 새 회의 분석 결과를 목록 맨 앞에 추가하고 저장한다. 새로 생성된 배열을 반환한다. */
 export function addMeeting(
   records: MeetingRecord[],
   summary: string,
   decisions: string[],
   tasks: Task[],
+  personalStar?: PersonalStar,
 ): MeetingRecord[] {
   const record: MeetingRecord = {
     id: `meeting_${Date.now()}`,
@@ -35,6 +46,7 @@ export function addMeeting(
     summary,
     decisions,
     tasks,
+    personalStar,
   };
   const next = [record, ...records];
   persist(next);

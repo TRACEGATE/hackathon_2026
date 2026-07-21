@@ -4,64 +4,87 @@ import ActionChecklist from "./ActionChecklist";
 interface DashboardScreenProps {
   meetings: MeetingRecord[];
   onToggle: (meetingId: string, taskId: string) => void;
+  onClear: () => void;
 }
 
-export default function DashboardScreen({ meetings, onToggle }: DashboardScreenProps) {
-  const totalItems = meetings.reduce((sum, m) => sum + m.tasks.length, 0);
-  const doneItems = meetings.reduce(
+function InboxIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M4 12h4l2 3h4l2-3h4" />
+      <path d="M5.5 5h13l2.5 7v7a1 1 0 0 1-1 1h-16a1 1 0 0 1-1-1v-7l2.5-7z" />
+    </svg>
+  );
+}
+
+export default function DashboardScreen({ meetings, onToggle, onClear }: DashboardScreenProps) {
+  const totalCount = meetings.reduce((sum, m) => sum + m.tasks.length, 0);
+  const doneCount = meetings.reduce(
     (sum, m) => sum + m.tasks.filter((task) => task.status === "done").length,
     0,
   );
+  const openCount = totalCount - doneCount;
 
   return (
-    <div className="screen dashboard-screen">
-      <div className="page-header">
-        <p className="eyebrow">액션아이템 대시보드</p>
-        <h1>회의별 액션아이템 현황</h1>
-        <p className="page-description">
-          지금까지 분석한 회의의 액션아이템을 모아봤습니다. 완료한 항목을 체크하면 이 브라우저에 저장되어
-          다음에 다시 열어도 유지됩니다.
-        </p>
+    <div className="vn-page vn-page--dashboard">
+      <div className="dashboard-header-row">
+        <h1 className="result-title">대시보드</h1>
+        {meetings.length > 0 && (
+          <button type="button" className="dashboard-clear-btn" onClick={onClear}>
+            전체 초기화
+          </button>
+        )}
       </div>
 
       {meetings.length === 0 ? (
-        <div className="card">
-          <p className="body-text body-text--muted">
-            아직 저장된 회의가 없습니다. 메모를 입력해서 첫 회의를 분석해보세요.
+        <div className="dashboard-empty">
+          <InboxIcon />
+          <p className="dashboard-empty-text">
+            아직 저장된 회의가 없습니다.
+            <br />
+            메모를 입력해서 첫 회의를 분석해보세요.
           </p>
         </div>
       ) : (
         <>
-          <div className="dashboard-stats">
-            <span className="dashboard-stat">
-              전체 <strong>{totalItems}</strong>건
+          <div className="dashboard-stats-row">
+            <span className="dashboard-stat-inline">
+              전체 <strong>{totalCount}</strong>건
             </span>
-            <span className="dashboard-stat">
-              완료 <strong>{doneItems}</strong>건
+            <span className="dashboard-stat-inline">
+              완료 <strong>{doneCount}</strong>건
             </span>
-            <span className="dashboard-stat">
-              남음 <strong>{totalItems - doneItems}</strong>건
+            <span className="dashboard-stat-inline">
+              남음 <strong>{openCount}</strong>건
             </span>
           </div>
 
           <div className="dashboard-list">
-            {meetings.map((meeting) => (
-              <section key={meeting.id} className="card dashboard-meeting-card">
-                <div className="dashboard-meeting-header">
-                  <span className="dashboard-meeting-date">
-                    {new Date(meeting.createdAt).toLocaleString("ko-KR", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </span>
-                </div>
-                <p className="body-text dashboard-meeting-summary">{meeting.summary}</p>
-                <ActionChecklist
-                  items={meeting.tasks}
-                  onToggle={(taskId) => onToggle(meeting.id, taskId)}
-                />
-              </section>
-            ))}
+            {meetings.map((meeting) => {
+              const meetingDone = meeting.tasks.filter((task) => task.status === "done").length;
+              return (
+                <section key={meeting.id} className="dashboard-meeting-card">
+                  <div className="dashboard-meeting-top">
+                    <span className="dashboard-meeting-date">
+                      {new Date(meeting.createdAt).toLocaleString("ko-KR", {
+                        dateStyle: "medium",
+                        timeStyle: "short",
+                      })}
+                    </span>
+                  </div>
+
+                  <p className="result-summary-text">{meeting.summary}</p>
+
+                  {meeting.tasks.length > 0 && (
+                    <>
+                      <span className="dashboard-meta-tag">
+                        할 일 {meetingDone} / {meeting.tasks.length} 완료
+                      </span>
+                      <ActionChecklist items={meeting.tasks} onToggle={(taskId) => onToggle(meeting.id, taskId)} />
+                    </>
+                  )}
+                </section>
+              );
+            })}
           </div>
         </>
       )}

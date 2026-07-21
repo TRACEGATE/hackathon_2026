@@ -1,9 +1,10 @@
 import { useState } from "react";
 import "./App.css";
-import type { MeetingProcessResult, MeetingRecord, Screen, TokenizeResult, View } from "./types";
+import type { MeetingProcessResult, MeetingRecord, Screen, TokenizeResult } from "./types";
 import { tokenizeText, restoreDeep } from "./lib/tokenizer";
 import { processMeeting, BackendApiError } from "./lib/claudeApi";
-import { loadMeetings, addMeeting, toggleTaskStatus } from "./lib/meetingStore";
+import { loadMeetings, addMeeting, toggleTaskStatus, clearMeetings } from "./lib/meetingStore";
+import shieldLogo from "./assets/Logo1.png";
 import HomeScreen from "./components/HomeScreen";
 import InputScreen from "./components/InputScreen";
 import ProcessingScreen from "./components/ProcessingScreen";
@@ -11,7 +12,6 @@ import ResultScreen from "./components/ResultScreen";
 import DashboardScreen from "./components/DashboardScreen";
 
 export default function App() {
-  const [view, setView] = useState<View>("flow");
   const [screen, setScreen] = useState<Screen>("home");
   const [memoText, setMemoText] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +53,7 @@ export default function App() {
         restoredResult.summary,
         restoredResult.decisions,
         restoredResult.tasks,
+        restoredResult.personalStar,
       );
       setMeetings(nextMeetings);
       setCurrentMeetingId(nextMeetings[0].id);
@@ -72,6 +73,11 @@ export default function App() {
     setMeetings((prev) => toggleTaskStatus(prev, meetingId, taskId));
   };
 
+  const handleClearMeetings = () => {
+    if (!window.confirm("저장된 모든 회의 기록을 삭제할까요? 이 작업은 되돌릴 수 없습니다.")) return;
+    setMeetings(clearMeetings());
+  };
+
   const handleReset = () => {
     setMemoText("");
     setError(null);
@@ -81,65 +87,61 @@ export default function App() {
     setAiRestoredResult(null);
     setCurrentMeetingId(null);
     setScreen("input");
-    setView("flow");
   };
 
   const currentMeeting = meetings.find((m) => m.id === currentMeetingId) ?? null;
 
-  // 홈 화면은 기존 앱 헤더/탭이 전혀 보이지 않는 완전히 독립적인 첫 페이지라
-  // app-shell(헤더+메인) 안에 끼워 넣지 않고 화면 전체를 그대로 대체한다.
-  if (view === "flow" && screen === "home") {
+  // 홈 화면은 내비게이션 바 없이 뷰포트 전체를 차지하는 완전히 독립적인 첫 페이지
+  if (screen === "home") {
     return <HomeScreen onStart={() => setScreen("input")} />;
   }
 
   return (
-    <div className="app-shell">
-      <header className="app-topbar">
-        <div className="app-topbar-brand">
-          <span className="app-logo">VeilNote</span>
-        </div>
-        <nav className="app-nav">
+    <div className="vn-shell">
+      <header className="vn-topbar">
+        <button type="button" className="vn-topbar-brand" onClick={() => setScreen("home")}>
+          <img src={shieldLogo} alt="" className="vn-topbar-logo" />
+          <span className="vn-topbar-wordmark">VeilNote</span>
+        </button>
+        <nav className="vn-nav">
           <button
             type="button"
-            className={`app-nav-link ${view === "flow" ? "app-nav-link--active" : ""}`}
-            onClick={() => setView("flow")}
+            className={`vn-nav-link ${screen === "input" || screen === "processing" || screen === "result" ? "vn-nav-link--active" : ""}`}
+            onClick={() => setScreen("input")}
           >
             메모 입력
           </button>
           <button
             type="button"
-            className={`app-nav-link ${view === "dashboard" ? "app-nav-link--active" : ""}`}
-            onClick={() => setView("dashboard")}
+            className={`vn-nav-link ${screen === "dashboard" ? "vn-nav-link--active" : ""}`}
+            onClick={() => setScreen("dashboard")}
           >
             대시보드
-            {openItemCount > 0 && <span className="app-nav-badge">{openItemCount}</span>}
+            {openItemCount > 0 && <span className="vn-nav-badge">{openItemCount}</span>}
           </button>
         </nav>
       </header>
 
-      <main className="app-main">
-        {view === "dashboard" ? (
-          <DashboardScreen meetings={meetings} onToggle={handleToggleTask} />
-        ) : (
-          <>
-            {screen === "input" && (
-              <InputScreen value={memoText} onChange={setMemoText} onSubmit={handleSubmit} error={error} />
-            )}
-            {screen === "processing" && (
-              <ProcessingScreen tokenCount={tokenizeResult?.mappings.length ?? 0} />
-            )}
-            {screen === "result" && tokenizeResult && aiRawResult && aiRestoredResult && currentMeeting && (
-              <ResultScreen
-                originalText={originalText}
-                tokenizeResult={tokenizeResult}
-                aiRawResult={aiRawResult}
-                aiRestoredResult={aiRestoredResult}
-                tasks={currentMeeting.tasks}
-                onToggleTask={(taskId) => handleToggleTask(currentMeeting.id, taskId)}
-                onReset={handleReset}
-              />
-            )}
-          </>
+      <main className="vn-main">
+        {screen === "input" && (
+          <InputScreen value={memoText} onChange={setMemoText} onSubmit={handleSubmit} error={error} />
+        )}
+        {screen === "processing" && (
+          <ProcessingScreen tokenCount={tokenizeResult?.mappings.length ?? 0} />
+        )}
+        {screen === "result" && tokenizeResult && aiRawResult && aiRestoredResult && currentMeeting && (
+          <ResultScreen
+            originalText={originalText}
+            tokenizeResult={tokenizeResult}
+            aiRawResult={aiRawResult}
+            aiRestoredResult={aiRestoredResult}
+            tasks={currentMeeting.tasks}
+            onToggleTask={(taskId) => handleToggleTask(currentMeeting.id, taskId)}
+            onReset={handleReset}
+          />
+        )}
+        {screen === "dashboard" && (
+          <DashboardScreen meetings={meetings} onToggle={handleToggleTask} onClear={handleClearMeetings} />
         )}
       </main>
     </div>

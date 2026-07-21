@@ -71,7 +71,7 @@ app.get('/health', (_req, res) => {
  *   participantTokens?: string[],  // ['[PERSON_1]', ...] — 담당자 환각 방지 화이트리스트
  *   meetingTitle?: string
  * }
- * → { summary, decisions, tasks: [...할일 레코드], _meta }
+ * → { summary, decisions, tasks: [...할일 레코드], personalStar: {situation,task,action,result}, _meta }
  *
  * 서버측 잔여 PII 게이트를 통과해야만 LLM을 호출한다 (통과 못하면 422).
  */
@@ -117,6 +117,7 @@ app.post('/api/process-meeting', async (req, res) => {
       summary: result.summary,
       decisions: result.decisions,
       tasks,
+      personalStar: result.personalStar,
       _meta: result._meta,
     });
   } catch (err) {

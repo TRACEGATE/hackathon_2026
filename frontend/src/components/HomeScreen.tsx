@@ -93,6 +93,9 @@ function HeroGraphic() {
 export default function HomeScreen({ onStart }: HomeScreenProps) {
   return (
     <div className="home-page">
+      <div className="home-page-glow home-page-glow--top" aria-hidden="true" />
+      <div className="home-page-glow home-page-glow--bottom" aria-hidden="true" />
+
       <div className="home-page-brand">
         <img src={shieldLogo} alt="" className="home-page-logo" />
         <span className="home-page-wordmark">VeilNote</span>
@@ -103,12 +106,12 @@ export default function HomeScreen({ onStart }: HomeScreenProps) {
           <h1 className="home-page-title">
             회의는 안전하게,
             <br />
-            성과는 <span className="home-page-title-accent">나답게</span>
+            할일은 <span className="home-page-title-accent">정확하게</span>
           </h1>
           <p className="home-page-description">
             회의 내용을 안전하게 기록하고
             <br />
-            AI가 팀 요약과 개인 성과를 자동으로 정리합니다.
+            AI가 요약과 할일을 자동으로 정리합니다.
           </p>
           <button type="button" className="home-page-cta" onClick={onStart}>
             시작하기

@@ -64,6 +64,13 @@ export const MEETING_SYSTEM_PROMPT = `당신은 VeilNote의 회의록 처리 에
 - 대신 회의 시점 기준 상대일수 dueOffsetDays(정수)로만 답하십시오. 예: "이번 주 금요일까지"→회의가 월요일이면 4.
 - 기한 근거가 전혀 없으면 dueOffsetDays를 null로 두십시오.
 
+[개인 성과 STAR 문장 — personalStar]
+- 회의록에서 화자 본인의 발언 중 "본인이 직접 기여·수행한 내용"으로 읽히는 부분을 근거로,
+  개인 성과 기록에 바로 쓸 수 있도록 1인칭 관점의 STAR(상황·과제·행동·결과) 문장을 작성하십시오.
+- situation(상황), task(과제), action(행동), result(결과) 각각 1~3문장. 근거 없는 내용을 지어내지 마십시오.
+- 회의 내용만으로 특정 항목의 근거가 부족하면, 있는 그대로("이 회의에서는 결과가 아직 확인되지 않음" 등) 담백하게 쓰고 과장하지 마십시오.
+- 입력에 등장한 대괄호 토큰은 다른 필드와 동일하게 그대로 유지하십시오.
+
 결과는 지정된 JSON 스키마를 정확히 따르며, 그 외 텍스트는 출력하지 마십시오.`;
 
 export function buildMeetingUserPrompt({
@@ -154,8 +161,21 @@ export const MEETING_OUTPUT_SCHEMA = {
         additionalProperties: false,
       },
     },
+    personalStar: {
+      type: 'object',
+      description:
+        '화자 본인의 기여로 읽히는 내용을 1인칭 개인 성과 기록용 STAR(상황·과제·행동·결과) 문장으로 정리.',
+      properties: {
+        situation: { type: 'string', description: '상황(Situation). 어떤 배경·맥락이었는지.' },
+        task: { type: 'string', description: '과제(Task). 본인이 맡았던 과제·목표.' },
+        action: { type: 'string', description: '행동(Action). 본인이 실제로 취한 행동.' },
+        result: { type: 'string', description: '결과(Result). 그 행동으로 만든 결과·성과.' },
+      },
+      required: ['situation', 'task', 'action', 'result'],
+      additionalProperties: false,
+    },
   },
-  required: ['corrections', 'summary', 'decisions', 'actionItems'],
+  required: ['corrections', 'summary', 'decisions', 'actionItems', 'personalStar'],
   additionalProperties: false,
 };
 
@@ -163,7 +183,8 @@ export const MEETING_OUTPUT_SCHEMA = {
  * MEETING_PROCESS — 회의 1건 → 전사 교정 + 요약 + 결정 + 액션아이템.
  * @param {{ transcriptTokenized: string, participantTokens?: string[], meetingTitle?: string }} input
  * @returns {Promise<{corrections: object[], summary: string, decisions: string[],
- *                    actionItems: object[], _meta: object}>}
+ *                    actionItems: object[], personalStar: {situation: string, task: string,
+ *                    action: string, result: string}, _meta: object}>}
  */
 export async function processMeeting(input) {
   const { transcriptTokenized } = input;
