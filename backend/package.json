@@ -1,7 +1,7 @@
 {
   "name": "veilnote-backend",
   "version": "0.1.0",
-  "description": "VeilNote 해커톤 백엔드 프로토타입 — 토큰화된 회의 텍스트를 받아 팀 회의요약과 개인 STAR 성과문장을 동시에 생성하는 LLM 프록시",
+  "description": "VeilNote 해커톤 백엔드 프로토타입 — 토큰화된 회의 텍스트를 받아 회의 요약과 액션아이템을 생성하고, 액션아이템을 그대로 할일 대시보드로 잇는 API 서버",
   "type": "module",
   "main": "src/server.js",
   "scripts": {

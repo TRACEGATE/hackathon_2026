@@ -1,4 +1,4 @@
-// 엔드투엔드 데모: 원문 → 하이브리드 탐지 → 토큰화 → 유출검사(2겹) → 서버(LLM) → 복원
+// 엔드투엔드 데모: 원문 → 하이브리드 탐지 → 토큰화 → 유출검사(2겹) → LLM → 할일 대시보드 → 복원
 //
 // 실행: node scripts/demo.js
 // - ANTHROPIC_API_KEY가 있으면 실제 Claude 호출까지, 없으면 그 전 단계까지 시연.
@@ -14,7 +14,13 @@ import {
   scanResidualPII,
   summarizeFindings,
 } from '../src/shared/leakGuard.js';
-import { generateMeetingOutputs } from '../src/llm.js';
+import { processMeeting } from '../src/meetingProcess.js';
+import {
+  addTasksFromActionItems,
+  listTasks,
+  updateTask,
+  taskStats,
+} from '../src/taskStore.js';
 
 // 원문 회의 메모 (민감정보 포함) — 브라우저를 떠나지 않는다고 가정
 const rawTranscript = `
@@ -73,21 +79,47 @@ async function main() {
     return;
   }
 
-  // 서버: LLM 이중 산출물 생성 (토큰만 처리)
-  const selfToken = Object.keys(mapping).find((t) => mapping[t] === '소지윤');
-  hr('7. LLM 처리 중 (토큰만 전송)...');
-  const ai = await generateMeetingOutputs({
-    tokenizedTranscript: tokenized,
-    selfToken,
+  // 회의 처리 (토큰만 전송, LLM 호출 1회)
+  const participantTokens = Object.keys(mapping).filter((t) =>
+    t.startsWith('[PERSON_')
+  );
+  hr('7. 회의 처리 중 (토큰만 전송)...');
+  const ai = await processMeeting({
+    transcriptTokenized: tokenized,
+    participantTokens,
     meetingTitle: '분기 납품 계약 논의',
   });
-  console.log('토큰 상태 결과:');
-  console.log(JSON.stringify({ teamSummary: ai.teamSummary, personalStar: ai.personalStar }, null, 2));
+  console.log('요약:', ai.summary);
+  console.log('결정사항:', ai.decisions);
   console.log('사용량:', ai._meta.usage);
 
+  // 액션아이템 → 할일 대시보드 (추가 LLM 호출 없음)
+  hr('8. 할일 대시보드 적재');
+  const created = addTasksFromActionItems(ai.actionItems, {
+    meetingTitle: '분기 납품 계약 논의',
+  });
+  for (const t of created) {
+    console.log(
+      `  [ ] ${t.priority} ${t.text}  — 담당 ${t.ownerToken ?? '미배정'} (${t.ownerReason})`
+    );
+  }
+
+  // 체크박스 완료 처리 시연
+  hr('9. 첫 항목 체크 → 완료 처리');
+  if (created[0]) {
+    updateTask(created[0].id, { status: 'done' });
+  }
+  for (const t of listTasks()) {
+    console.log(`  [${t.status === 'done' ? 'x' : ' '}] ${t.priority} ${t.text}`);
+  }
+  console.log('집계:', taskStats());
+
   // 클라이언트: 복원
-  hr('8. 복원된 최종 결과 (기기에서 재치환)');
-  const restored = restore({ teamSummary: ai.teamSummary, personalStar: ai.personalStar }, mapping);
+  hr('10. 복원된 최종 결과 (기기에서 재치환)');
+  const restored = restore(
+    { summary: ai.summary, decisions: ai.decisions, tasks: listTasks() },
+    mapping
+  );
   console.log(JSON.stringify(restored, null, 2));
 }
 
