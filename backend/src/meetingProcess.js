@@ -32,6 +32,17 @@ export const MEETING_SYSTEM_PROMPT = `당신은 VeilNote의 회의록 처리 에
 - 토큰이 가리키는 실제 값은 당신이 알 수 없고, 알 필요도 없습니다. 추측하지 마십시오.
 - 입력에 등장한 토큰은 출력에서도 반드시 대괄호 포함 문자 그대로 사용하십시오. 새 토큰을 지어내지 마십시오.
 
+[전사 오류 교정 — 요약보다 먼저]
+- 회의 전문은 온디바이스 음성인식(Whisper) 결과라 오탈자·띄어쓰기 오류·동음이의 오인식이 섞여 있습니다.
+  (예: "일정 공유" → "일종 공유", "배포" → "배표", "API 스펙" → "에이피아이 스팩")
+- 요약·액션아이템을 뽑기 전에, 먼저 문맥에 맞게 자연스럽게 교정한 문장을 머릿속으로 확정하고
+  그 교정본을 근거로 나머지 결과물을 작성하십시오.
+- ⚠️ 대괄호 토큰([ORG_1], [PERSON_2] 등)은 교정 대상이 아닙니다. 오탈자처럼 보여도 절대 바꾸지 마십시오.
+  토큰을 손대면 사용자 기기의 매핑 테이블과 어긋나 복원이 깨집니다.
+- 근거 없는 내용 보충은 교정이 아닙니다. 발화되지 않은 정보를 지어내지 마십시오.
+  무슨 말인지 끝내 알 수 없는 구간은 교정하지 말고 그대로 두십시오.
+- 실제로 고친 것만 corrections에 보고하십시오. 고친 게 없으면 빈 배열입니다.
+
 [액션아이템 — 이 결과가 그대로 팀의 할일 목록이 됩니다]
 - 회의에서 "누군가 해야 한다"고 합의되거나 지시된 후속 업무만 뽑으십시오. 단순 논의·의견은 액션아이템이 아닙니다.
 - 각 항목의 text는 체크박스 옆에 그대로 표시됩니다. "무엇을 하면 완료인지"가 드러나는 한 문장으로 쓰십시오.
@@ -78,9 +89,24 @@ ${transcriptTokenized}
 export const MEETING_OUTPUT_SCHEMA = {
   type: 'object',
   properties: {
+    corrections: {
+      type: 'array',
+      description:
+        '음성인식 오류를 문맥으로 교정한 내역. 실제 교정한 것만. 없으면 빈 배열.',
+      items: {
+        type: 'object',
+        properties: {
+          before: { type: 'string', description: '전사된 원래 표현.' },
+          after: { type: 'string', description: '교정한 표현.' },
+        },
+        required: ['before', 'after'],
+        additionalProperties: false,
+      },
+    },
     summary: {
       type: 'string',
-      description: '회의 전체를 2~4문장으로 요약. 토큰은 그대로 유지.',
+      description:
+        '회의 전체를 2~4문장으로 요약. 교정본 기준. 토큰은 그대로 유지.',
     },
     decisions: {
       type: 'array',
@@ -129,14 +155,15 @@ export const MEETING_OUTPUT_SCHEMA = {
       },
     },
   },
-  required: ['summary', 'decisions', 'actionItems'],
+  required: ['corrections', 'summary', 'decisions', 'actionItems'],
   additionalProperties: false,
 };
 
 /**
- * MEETING_PROCESS — 회의 1건 → 요약 + 결정 + 액션아이템.
+ * MEETING_PROCESS — 회의 1건 → 전사 교정 + 요약 + 결정 + 액션아이템.
  * @param {{ transcriptTokenized: string, participantTokens?: string[], meetingTitle?: string }} input
- * @returns {Promise<{summary: string, decisions: string[], actionItems: object[], _meta: object}>}
+ * @returns {Promise<{corrections: object[], summary: string, decisions: string[],
+ *                    actionItems: object[], _meta: object}>}
  */
 export async function processMeeting(input) {
   const { transcriptTokenized } = input;
@@ -174,12 +201,36 @@ export async function processMeeting(input) {
 
   return {
     ...parsed,
+    corrections: dropTokenTouchingCorrections(parsed.corrections),
     _meta: {
       model: response.model,
       stopReason: response.stop_reason,
       usage: response.usage,
     },
   };
+}
+
+const TOKEN_RE = /\[[A-Z_]+_\d+\]/;
+
+/**
+ * 대괄호 토큰을 건드린 교정 항목을 버린다.
+ *
+ * 교정은 어디까지나 "전사 오류"를 대상으로 한다. 모델이 토큰을 오탈자로 오해해
+ * 고치면 사용자 기기의 매핑 테이블과 어긋나 복원이 깨지므로, 프롬프트 지시와 별개로
+ * 서버에서 한 번 더 막는다. (버리는 것은 교정 "보고"일 뿐이고, 토큰 자체의 보존은
+ * 요약·액션아이템 텍스트에서 그대로 유지된다.)
+ */
+export function dropTokenTouchingCorrections(corrections) {
+  if (!Array.isArray(corrections)) return [];
+  const kept = corrections.filter(
+    (c) => !TOKEN_RE.test(c.before ?? '') && !TOKEN_RE.test(c.after ?? '')
+  );
+  if (kept.length !== corrections.length) {
+    console.warn(
+      `교정 항목 ${corrections.length - kept.length}건이 토큰을 건드려 폐기됨`
+    );
+  }
+  return kept;
 }
 
 function tryParse(response) {

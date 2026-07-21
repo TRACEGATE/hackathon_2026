@@ -63,7 +63,8 @@ app.get('/health', (_req, res) => {
 
 /**
  * POST /api/process-meeting   ★ 메인 엔드포인트
- * 토큰화된 회의 전문 → 요약 · 결정 · 액션아이템. 액션아이템은 곧바로 할일로 적재된다.
+ * 토큰화된 회의 전문 → 전사 교정 · 요약 · 결정 · 액션아이템.
+ * 액션아이템은 곧바로 할일로 적재된다.
  *
  * body: {
  *   transcriptTokenized: string,   // 필수. 토큰만
@@ -112,6 +113,7 @@ app.post('/api/process-meeting', async (req, res) => {
     const tasks = addTasksFromActionItems(result.actionItems, { meetingTitle });
 
     return res.json({
+      corrections: result.corrections,
       summary: result.summary,
       decisions: result.decisions,
       tasks,
