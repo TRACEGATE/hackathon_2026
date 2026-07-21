@@ -1,9 +1,9 @@
 import { useState } from "react";
 import "./App.css";
-import type { AiResult, MeetingRecord, Screen, TokenizeResult, View } from "./types";
+import type { MeetingProcessResult, MeetingRecord, Screen, TokenizeResult, View } from "./types";
 import { tokenizeText, restoreDeep } from "./lib/tokenizer";
-import { generateSummaryAndStar } from "./lib/claudeApi";
-import { loadMeetings, addMeeting, toggleActionItem } from "./lib/meetingStore";
+import { processMeeting, BackendApiError } from "./lib/claudeApi";
+import { loadMeetings, addMeeting, toggleTaskStatus } from "./lib/meetingStore";
 import HomeScreen from "./components/HomeScreen";
 import InputScreen from "./components/InputScreen";
 import ProcessingScreen from "./components/ProcessingScreen";
@@ -18,14 +18,14 @@ export default function App() {
 
   const [originalText, setOriginalText] = useState("");
   const [tokenizeResult, setTokenizeResult] = useState<TokenizeResult | null>(null);
-  const [aiRawResult, setAiRawResult] = useState<AiResult | null>(null);
-  const [aiRestoredResult, setAiRestoredResult] = useState<AiResult | null>(null);
+  const [aiRawResult, setAiRawResult] = useState<MeetingProcessResult | null>(null);
+  const [aiRestoredResult, setAiRestoredResult] = useState<MeetingProcessResult | null>(null);
 
   const [meetings, setMeetings] = useState<MeetingRecord[]>(() => loadMeetings());
   const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(null);
 
   const openItemCount = meetings.reduce(
-    (sum, m) => sum + m.actionItems.filter((item) => !item.done).length,
+    (sum, m) => sum + m.tasks.filter((task) => task.status !== "done").length,
     0,
   );
 
@@ -43,28 +43,33 @@ export default function App() {
     setScreen("processing");
 
     try {
-      const rawResult = await generateSummaryAndStar(result.tokenizedText);
-      const restoredResult: AiResult = restoreDeep(rawResult, result.mappings);
+      const rawResult = await processMeeting(result.tokenizedText);
+      const restoredResult: MeetingProcessResult = restoreDeep(rawResult, result.mappings);
       setAiRawResult(rawResult);
       setAiRestoredResult(restoredResult);
 
       const nextMeetings = addMeeting(
         meetings,
-        restoredResult.teamSummary.summary,
-        restoredResult.teamSummary.actionItems,
+        restoredResult.summary,
+        restoredResult.decisions,
+        restoredResult.tasks,
       );
       setMeetings(nextMeetings);
       setCurrentMeetingId(nextMeetings[0].id);
 
       setScreen("result");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
+      if (err instanceof BackendApiError) {
+        setError(err.message);
+      } else {
+        setError(err instanceof Error ? err.message : "알 수 없는 오류가 발생했습니다.");
+      }
       setScreen("input");
     }
   };
 
-  const handleToggleActionItem = (meetingId: string, index: number) => {
-    setMeetings((prev) => toggleActionItem(prev, meetingId, index));
+  const handleToggleTask = (meetingId: string, taskId: string) => {
+    setMeetings((prev) => toggleTaskStatus(prev, meetingId, taskId));
   };
 
   const handleReset = () => {
@@ -114,7 +119,7 @@ export default function App() {
 
       <main className="app-main">
         {view === "dashboard" ? (
-          <DashboardScreen meetings={meetings} onToggle={handleToggleActionItem} />
+          <DashboardScreen meetings={meetings} onToggle={handleToggleTask} />
         ) : (
           <>
             {screen === "input" && (
@@ -129,8 +134,8 @@ export default function App() {
                 tokenizeResult={tokenizeResult}
                 aiRawResult={aiRawResult}
                 aiRestoredResult={aiRestoredResult}
-                actionItems={currentMeeting.actionItems}
-                onToggleActionItem={(index) => handleToggleActionItem(currentMeeting.id, index)}
+                tasks={currentMeeting.tasks}
+                onToggleTask={(taskId) => handleToggleTask(currentMeeting.id, taskId)}
                 onReset={handleReset}
               />
             )}

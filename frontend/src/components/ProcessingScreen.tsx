@@ -15,7 +15,7 @@ export default function ProcessingScreen({ tokenCount }: ProcessingScreenProps) 
           </li>
           <li className="processing-step processing-step--active">
             <span className="step-icon step-icon--spin" />
-            보호 처리된 텍스트만 AI로 전달해 팀 요약·개인 성과 문장 생성 중
+            보호 처리된 텍스트만 백엔드로 전달해 요약·결정사항·액션아이템 생성 중
           </li>
         </ul>
         <p className="processing-note">실제 회사명·고객사명·금액·인명은 이 브라우저 밖으로 전송되지 않습니다.</p>

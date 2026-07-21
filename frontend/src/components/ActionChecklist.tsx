@@ -1,9 +1,15 @@
-import type { ActionItem } from "../types";
+import type { Task } from "../types";
 
 interface ActionChecklistProps {
-  items: ActionItem[];
-  onToggle: (index: number) => void;
+  items: Task[];
+  onToggle: (taskId: string) => void;
 }
+
+const PRIORITY_LABEL: Record<Task["priority"], string> = {
+  P1: "P1 · 긴급",
+  P2: "P2 · 이번 주",
+  P3: "P3 · 미정",
+};
 
 export default function ActionChecklist({ items, onToggle }: ActionChecklistProps) {
   if (items.length === 0) {
@@ -12,23 +18,25 @@ export default function ActionChecklist({ items, onToggle }: ActionChecklistProp
 
   return (
     <ul className="action-checklist">
-      {items.map((item, index) => (
+      {items.map((item) => (
         <li
-          key={index}
-          className={`action-checklist-item ${item.done ? "action-checklist-item--done" : ""}`}
+          key={item.id}
+          className={`action-checklist-item ${item.status === "done" ? "action-checklist-item--done" : ""}`}
         >
           <label className="action-checklist-label">
             <input
               type="checkbox"
               className="action-checklist-checkbox"
-              checked={item.done}
-              onChange={() => onToggle(index)}
+              checked={item.status === "done"}
+              onChange={() => onToggle(item.id)}
             />
             <span className="action-checklist-content">
-              <span className="action-checklist-task">{item.task}</span>
-              <span className="action-checklist-owner">담당 제안: {item.owner}</span>
+              <span className="action-checklist-task">{item.text}</span>
+              <span className="action-checklist-owner">
+                담당 제안: {item.ownerToken ?? "미배정"} · {PRIORITY_LABEL[item.priority]}
+              </span>
             </span>
-            {item.done && <span className="action-checklist-badge">완료</span>}
+            {item.status === "done" && <span className="action-checklist-badge">완료</span>}
           </label>
         </li>
       ))}

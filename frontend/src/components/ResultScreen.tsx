@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ActionItem, AiResult, TokenizeResult } from "../types";
+import type { MeetingProcessResult, Task, TokenizeResult } from "../types";
 import { buildOriginalSegments, buildTokenSegments } from "../lib/highlight";
 import HighlightedText from "./HighlightedText";
 import ActionChecklist from "./ActionChecklist";
@@ -7,31 +7,26 @@ import ActionChecklist from "./ActionChecklist";
 interface ResultScreenProps {
   originalText: string;
   tokenizeResult: TokenizeResult;
-  aiRawResult: AiResult;
-  aiRestoredResult: AiResult;
-  actionItems: ActionItem[];
-  onToggleActionItem: (index: number) => void;
+  aiRawResult: MeetingProcessResult;
+  aiRestoredResult: MeetingProcessResult;
+  tasks: Task[];
+  onToggleTask: (taskId: string) => void;
   onReset: () => void;
 }
-
-type ResultTab = "team" | "star";
 
 export default function ResultScreen({
   originalText,
   tokenizeResult,
   aiRawResult,
   aiRestoredResult,
-  actionItems,
-  onToggleActionItem,
+  tasks,
+  onToggleTask,
   onReset,
 }: ResultScreenProps) {
-  const [activeTab, setActiveTab] = useState<ResultTab>("team");
-  const [showRaw, setShowRaw] = useState<Record<ResultTab, boolean>>({ team: false, star: false });
+  const [showRaw, setShowRaw] = useState(false);
 
   const originalSegments = buildOriginalSegments(originalText, tokenizeResult.mappings);
   const tokenSegments = buildTokenSegments(tokenizeResult.tokenizedText);
-
-  const toggleRaw = (tab: ResultTab) => setShowRaw((prev) => ({ ...prev, [tab]: !prev[tab] }));
 
   return (
     <div className="screen result-screen">
@@ -71,96 +66,45 @@ export default function ResultScreen({
 
       <section className="card">
         <h2 className="section-title">2단계 · AI 처리 결과 (복원 완료)</h2>
-        <div className="tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "team"}
-            className={`tab ${activeTab === "team" ? "tab--active" : ""}`}
-            onClick={() => setActiveTab("team")}
-          >
-            A. 팀 공유용 회의 요약
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={activeTab === "star"}
-            className={`tab ${activeTab === "star" ? "tab--active" : ""}`}
-            onClick={() => setActiveTab("star")}
-          >
-            B. 개인 성과 STAR 문장
-          </button>
-        </div>
 
-        {activeTab === "team" ? (
-          <div className="tab-panel">
-            <h3 className="tab-panel-title">회의 요약</h3>
-            <p className="body-text">{aiRestoredResult.teamSummary.summary}</p>
+        <h3 className="tab-panel-title">회의 요약</h3>
+        <p className="body-text">{aiRestoredResult.summary}</p>
 
-            <h3 className="tab-panel-title">액션 아이템</h3>
-            <ActionChecklist items={actionItems} onToggle={onToggleActionItem} />
-
-            <button type="button" className="btn-link" onClick={() => toggleRaw("team")}>
-              {showRaw.team ? "AI 원본 응답 숨기기" : "AI가 실제로 생성한 보호 처리된 내용 보기"}
-            </button>
-            {showRaw.team && (
-              <div className="raw-preview">
-                <p className="body-text body-text--muted">{aiRawResult.teamSummary.summary}</p>
-                <ul className="action-item-list">
-                  {aiRawResult.teamSummary.actionItems.map((item, index) => (
-                    <li key={index} className="action-item action-item--muted">
-                      <span className="action-item-task">{item.task}</span>
-                      <span className="action-item-owner">담당 제안: {item.owner}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
+        <h3 className="tab-panel-title">결정 사항</h3>
+        {aiRestoredResult.decisions.length > 0 ? (
+          <ul className="action-item-list">
+            {aiRestoredResult.decisions.map((decision, index) => (
+              <li key={index} className="action-item">
+                <span className="action-item-task">{decision}</span>
+              </li>
+            ))}
+          </ul>
         ) : (
-          <div className="tab-panel">
-            <div className="star-grid">
-              <div className="star-block">
-                <span className="star-label">S · 상황</span>
-                <p className="body-text">{aiRestoredResult.starStory.situation}</p>
-              </div>
-              <div className="star-block">
-                <span className="star-label">T · 과제</span>
-                <p className="body-text">{aiRestoredResult.starStory.task}</p>
-              </div>
-              <div className="star-block">
-                <span className="star-label">A · 행동</span>
-                <p className="body-text">{aiRestoredResult.starStory.action}</p>
-              </div>
-              <div className="star-block">
-                <span className="star-label">R · 결과</span>
-                <p className="body-text">{aiRestoredResult.starStory.result}</p>
-              </div>
-            </div>
+          <p className="body-text body-text--muted">회의에서 확정된 결정 사항이 없습니다.</p>
+        )}
 
-            <button type="button" className="btn-link" onClick={() => toggleRaw("star")}>
-              {showRaw.star ? "AI 원본 응답 숨기기" : "AI가 실제로 생성한 보호 처리된 내용 보기"}
-            </button>
-            {showRaw.star && (
-              <div className="raw-preview star-grid">
-                <div className="star-block">
-                  <span className="star-label">S · 상황</span>
-                  <p className="body-text body-text--muted">{aiRawResult.starStory.situation}</p>
-                </div>
-                <div className="star-block">
-                  <span className="star-label">T · 과제</span>
-                  <p className="body-text body-text--muted">{aiRawResult.starStory.task}</p>
-                </div>
-                <div className="star-block">
-                  <span className="star-label">A · 행동</span>
-                  <p className="body-text body-text--muted">{aiRawResult.starStory.action}</p>
-                </div>
-                <div className="star-block">
-                  <span className="star-label">R · 결과</span>
-                  <p className="body-text body-text--muted">{aiRawResult.starStory.result}</p>
-                </div>
-              </div>
-            )}
+        <h3 className="tab-panel-title">액션 아이템 (할일)</h3>
+        <ActionChecklist items={tasks} onToggle={onToggleTask} />
+
+        <button type="button" className="btn-link" onClick={() => setShowRaw((prev) => !prev)}>
+          {showRaw ? "AI 원본 응답 숨기기" : "AI가 실제로 생성한 보호 처리된 내용 보기"}
+        </button>
+        {showRaw && (
+          <div className="raw-preview">
+            <p className="body-text body-text--muted">{aiRawResult.summary}</p>
+            <ul className="action-item-list">
+              {aiRawResult.decisions.map((decision, index) => (
+                <li key={index} className="action-item action-item--muted">
+                  <span className="action-item-task">{decision}</span>
+                </li>
+              ))}
+              {aiRawResult.tasks.map((task) => (
+                <li key={task.id} className="action-item action-item--muted">
+                  <span className="action-item-task">{task.text}</span>
+                  <span className="action-item-owner">담당 제안: {task.ownerToken ?? "미배정"}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         )}
       </section>

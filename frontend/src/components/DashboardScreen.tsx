@@ -3,13 +3,13 @@ import ActionChecklist from "./ActionChecklist";
 
 interface DashboardScreenProps {
   meetings: MeetingRecord[];
-  onToggle: (meetingId: string, index: number) => void;
+  onToggle: (meetingId: string, taskId: string) => void;
 }
 
 export default function DashboardScreen({ meetings, onToggle }: DashboardScreenProps) {
-  const totalItems = meetings.reduce((sum, m) => sum + m.actionItems.length, 0);
+  const totalItems = meetings.reduce((sum, m) => sum + m.tasks.length, 0);
   const doneItems = meetings.reduce(
-    (sum, m) => sum + m.actionItems.filter((item) => item.done).length,
+    (sum, m) => sum + m.tasks.filter((task) => task.status === "done").length,
     0,
   );
 
@@ -57,8 +57,8 @@ export default function DashboardScreen({ meetings, onToggle }: DashboardScreenP
                 </div>
                 <p className="body-text dashboard-meeting-summary">{meeting.summary}</p>
                 <ActionChecklist
-                  items={meeting.actionItems}
-                  onToggle={(index) => onToggle(meeting.id, index)}
+                  items={meeting.tasks}
+                  onToggle={(taskId) => onToggle(meeting.id, taskId)}
                 />
               </section>
             ))}
