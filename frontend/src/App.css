@@ -913,6 +913,27 @@
   color: var(--highlight-amount-text);
 }
 
+/* 토큰화 검토(HITL) 화면 — 하이라이트를 클릭해서 가릴지/놔둘지 바꾸는 버튼 */
+.highlight-toggle {
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.highlight-toggle:hover {
+  opacity: 0.75;
+}
+
+.highlight--excluded {
+  background: none;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  text-decoration: line-through;
+  font-weight: 500;
+}
+
 .result-legend {
   display: flex;
   gap: 20px;
@@ -1206,6 +1227,165 @@
   color: var(--text-secondary);
   max-width: 360px;
   margin: 0;
+}
+
+/* ---------- 토큰화 검토(HITL) 화면 ---------- */
+.review-highlight-index {
+  font-size: 9px;
+  font-weight: 800;
+  margin-left: 1px;
+  opacity: 0.75;
+}
+
+.review-detection-list {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.review-detection-item {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: #fbfbfc;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+
+.review-detection-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--border);
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.review-detection-type {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  flex-shrink: 0;
+}
+
+.review-detection-type--org {
+  background: var(--highlight-org-bg);
+  border: 1px solid var(--highlight-org-border);
+  color: var(--highlight-org-text);
+}
+
+.review-detection-type--person {
+  background: var(--highlight-person-bg);
+  border: 1px solid var(--highlight-person-border);
+  color: var(--highlight-person-text);
+}
+
+.review-detection-type--amount {
+  background: var(--highlight-amount-bg);
+  border: 1px solid var(--highlight-amount-border);
+  color: var(--highlight-amount-text);
+}
+
+.review-detection-text {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.review-detection-arrow {
+  color: var(--text-muted);
+}
+
+.review-detection-token {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  color: var(--navy-900);
+}
+
+.review-detection-token--excluded {
+  font-family: inherit;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+.review-detection-toggle {
+  margin-left: auto;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 12.5px;
+  color: var(--steel);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.review-add-form {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.review-add-select {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text-primary);
+  background: #fff;
+}
+
+.review-add-input {
+  flex: 1;
+  min-width: 200px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.review-add-select:focus,
+.review-add-input:focus {
+  outline: none;
+  border-color: var(--steel);
+  box-shadow: 0 0 0 3px rgba(74, 111, 165, 0.15);
+}
+
+.review-add-btn {
+  flex-shrink: 0;
+  border: 1px solid var(--navy-900);
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy-900);
+  background: #fff;
+  transition: background 0.15s ease;
+}
+
+.review-add-btn:hover {
+  background: var(--bg);
+}
+
+.review-empty-note {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 12px;
 }
 
 /* ---------- 반응형 ---------- */

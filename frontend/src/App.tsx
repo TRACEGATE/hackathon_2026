@@ -1,12 +1,13 @@
 import { useState } from "react";
 import "./App.css";
-import type { MeetingProcessResult, MeetingRecord, Screen, TokenizeResult } from "./types";
-import { tokenizeText, restoreDeep } from "./lib/tokenizer";
+import type { DetectedEntity, EntityType, MeetingProcessResult, MeetingRecord, Screen, TokenizeResult } from "./types";
+import { detectEntities, findCustomEntities, restoreDeep, tokenizeFromEntities } from "./lib/tokenizer";
 import { processMeeting, BackendApiError } from "./lib/claudeApi";
 import { loadMeetings, addMeeting, toggleTaskStatus, clearMeetings } from "./lib/meetingStore";
 import shieldLogo from "./assets/Logo1.png";
 import HomeScreen from "./components/HomeScreen";
 import InputScreen from "./components/InputScreen";
+import TokenReviewScreen from "./components/TokenReviewScreen";
 import ProcessingScreen from "./components/ProcessingScreen";
 import ResultScreen from "./components/ResultScreen";
 import DashboardScreen from "./components/DashboardScreen";
@@ -17,6 +18,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
 
   const [originalText, setOriginalText] = useState("");
+  const [detections, setDetections] = useState<DetectedEntity[]>([]);
   const [tokenizeResult, setTokenizeResult] = useState<TokenizeResult | null>(null);
   const [aiRawResult, setAiRawResult] = useState<MeetingProcessResult | null>(null);
   const [aiRestoredResult, setAiRestoredResult] = useState<MeetingProcessResult | null>(null);
@@ -29,7 +31,9 @@ export default function App() {
     0,
   );
 
-  const handleSubmit = async () => {
+  // 자동 탐지 결과를 곧바로 토큰화하지 않고, 사람이 검토·확정(HITL)할 수 있도록
+  // 먼저 검토 화면으로 넘긴다. 실제 토큰화는 handleConfirmReview에서 일어난다.
+  const handleContinueToReview = () => {
     const trimmed = memoText.trim();
     if (!trimmed) {
       setError("회의·업무 메모를 입력해주세요.");
@@ -37,8 +41,25 @@ export default function App() {
     }
 
     setError(null);
-    const result = tokenizeText(trimmed);
     setOriginalText(trimmed);
+    setDetections(detectEntities(trimmed));
+    setScreen("review");
+  };
+
+  const handleToggleDetection = (id: string) => {
+    setDetections((prev) => prev.map((d) => (d.id === id ? { ...d, included: !d.included } : d)));
+  };
+
+  const handleAddCustomDetection = (type: EntityType, value: string) => {
+    setDetections((prev) => [...prev, ...findCustomEntities(originalText, type, value, prev)]);
+  };
+
+  const handleBackToInput = () => {
+    setScreen("input");
+  };
+
+  const handleConfirmReview = async () => {
+    const result = tokenizeFromEntities(originalText, detections);
     setTokenizeResult(result);
     setScreen("processing");
 
@@ -82,6 +103,7 @@ export default function App() {
     setMemoText("");
     setError(null);
     setOriginalText("");
+    setDetections([]);
     setTokenizeResult(null);
     setAiRawResult(null);
     setAiRestoredResult(null);
@@ -106,7 +128,11 @@ export default function App() {
         <nav className="vn-nav">
           <button
             type="button"
-            className={`vn-nav-link ${screen === "input" || screen === "processing" || screen === "result" ? "vn-nav-link--active" : ""}`}
+            className={`vn-nav-link ${
+              screen === "input" || screen === "review" || screen === "processing" || screen === "result"
+                ? "vn-nav-link--active"
+                : ""
+            }`}
             onClick={() => setScreen("input")}
           >
             메모 입력
@@ -124,7 +150,17 @@ export default function App() {
 
       <main className="vn-main">
         {screen === "input" && (
-          <InputScreen value={memoText} onChange={setMemoText} onSubmit={handleSubmit} error={error} />
+          <InputScreen value={memoText} onChange={setMemoText} onSubmit={handleContinueToReview} error={error} />
+        )}
+        {screen === "review" && (
+          <TokenReviewScreen
+            originalText={originalText}
+            entities={detections}
+            onToggle={handleToggleDetection}
+            onAddCustom={handleAddCustomDetection}
+            onConfirm={handleConfirmReview}
+            onBack={handleBackToInput}
+          />
         )}
         {screen === "processing" && (
           <ProcessingScreen tokenCount={tokenizeResult?.mappings.length ?? 0} />

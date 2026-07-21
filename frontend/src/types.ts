@@ -11,6 +11,19 @@ export interface TokenizeResult {
   mappings: TokenMapping[];
 }
 
+/** 자동 탐지된 민감정보 후보 1건. 토큰화 전, 사람이 검토해서 가릴지/놔둘지 확정한다(HITL). */
+export interface DetectedEntity {
+  id: string;
+  start: number;
+  end: number;
+  text: string;
+  type: EntityType;
+  /** 사용자가 직접 추가한 항목인지, 자동 탐지된 항목인지. */
+  source: "auto" | "manual";
+  /** 가릴지 여부. 사용자가 토글해서 확정한다. */
+  included: boolean;
+}
+
 export type Priority = "P1" | "P2" | "P3";
 
 export type TaskStatus = "open" | "done";
@@ -60,7 +73,7 @@ export interface MeetingProcessResult {
   };
 }
 
-export type Screen = "home" | "input" | "processing" | "result" | "dashboard";
+export type Screen = "home" | "input" | "review" | "processing" | "result" | "dashboard";
 
 /** 회의 1건의 처리 결과를 브라우저(localStorage)에 누적 저장하기 위한 레코드. */
 export interface MeetingRecord {

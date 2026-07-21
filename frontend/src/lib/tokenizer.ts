@@ -1,4 +1,4 @@
-import type { EntityType, TokenMapping, TokenizeResult } from "../types";
+import type { DetectedEntity, EntityType, TokenMapping, TokenizeResult } from "../types";
 
 interface RawMatch {
   start: number;
@@ -243,12 +243,66 @@ function collectMatches(text: string): RawMatch[] {
   return result.sort((a, b) => a.start - b.start);
 }
 
+let detectionSeq = 0;
+
 /**
- * 회사명·고객사명·금액·인명 등 민감정보를 [ORG_1], [AMOUNT_1] 같은 토큰으로 치환한다.
- * 순수 함수 — 동일 입력에 대해 항상 동일 결과를 반환하며 외부 상태를 변경하지 않는다.
+ * 규칙 기반으로 민감정보 후보를 탐지한다 (토큰화 전 사람이 검토·확정하는 HITL 단계용).
+ * 자동 탐지가 전부 맞을 필요는 없다 — 검토 화면에서 사용자가 가릴지/놔둘지 최종 확정한다.
  */
-export function tokenizeText(text: string): TokenizeResult {
-  const matches = collectMatches(text);
+export function detectEntities(text: string): DetectedEntity[] {
+  return collectMatches(text).map((match) => ({
+    ...match,
+    id: `auto_${detectionSeq++}`,
+    source: "auto" as const,
+    included: true,
+  }));
+}
+
+/**
+ * 사용자가 "직접 추가"한 용어를 자동 탐지와 같은 형식으로 변환한다.
+ * 이미 확정된 구간과 겹치는 위치는 건너뛴다.
+ */
+export function findCustomEntities(
+  text: string,
+  type: EntityType,
+  value: string,
+  existing: DetectedEntity[],
+): DetectedEntity[] {
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+
+  const claimed: Array<[number, number]> = existing.map((e) => [e.start, e.end]);
+  const result: DetectedEntity[] = [];
+  let from = 0;
+  for (;;) {
+    const idx = text.indexOf(trimmed, from);
+    if (idx === -1) break;
+    const end = idx + trimmed.length;
+    const overlaps = claimed.some(([s, e]) => idx < e && end > s);
+    if (!overlaps) {
+      result.push({
+        id: `manual_${detectionSeq++}`,
+        start: idx,
+        end,
+        text: trimmed,
+        type,
+        source: "manual",
+        included: true,
+      });
+      claimed.push([idx, end]);
+    }
+    from = idx + trimmed.length;
+  }
+  return result;
+}
+
+/** 확정(포함)된 탐지 목록만으로 텍스트를 토큰화한다. 제외 처리된 항목은 원문 그대로 남는다. */
+export function tokenizeFromEntities(text: string, entities: DetectedEntity[]): TokenizeResult {
+  const matches = entities
+    .filter((e) => e.included)
+    .slice()
+    .sort((a, b) => a.start - b.start);
+
   const mappings: TokenMapping[] = [];
   const tokenByKey = new Map<string, string>();
   const counters: Record<EntityType, number> = { ORG: 0, PERSON: 0, AMOUNT: 0 };
@@ -257,6 +311,7 @@ export function tokenizeText(text: string): TokenizeResult {
   let cursor = 0;
 
   for (const match of matches) {
+    if (match.start < cursor) continue; // 방어적: 겹침 스킵
     tokenizedText += text.slice(cursor, match.start);
     const key = `${match.type}:${match.text}`;
     let token = tokenByKey.get(key);
@@ -272,6 +327,16 @@ export function tokenizeText(text: string): TokenizeResult {
   tokenizedText += text.slice(cursor);
 
   return { tokenizedText, mappings };
+}
+
+/**
+ * 회사명·고객사명·금액·인명 등 민감정보를 [ORG_1], [AMOUNT_1] 같은 토큰으로 치환한다.
+ * 순수 함수 — 동일 입력에 대해 항상 동일 결과를 반환하며 외부 상태를 변경하지 않는다.
+ * 사람이 검토할 필요 없이 곧바로 토큰화하는 간편 버전 — 검토 화면에서는
+ * detectEntities + tokenizeFromEntities를 대신 사용한다.
+ */
+export function tokenizeText(text: string): TokenizeResult {
+  return tokenizeFromEntities(text, detectEntities(text));
 }
 
 /** 토큰화된 텍스트를 토큰-원문 매핑을 이용해 실제 값으로 복원한다. */
