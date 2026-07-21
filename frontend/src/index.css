@@ -28,6 +28,20 @@
   --sans: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
 
+  /* 8px 배수 간격 시스템 — 카드/섹션 레이아웃 여백은 전부 이 스케일을 따른다 */
+  --space-8: 8px;
+  --space-16: 16px;
+  --space-24: 24px;
+  --space-32: 32px;
+  --space-40: 40px;
+  --space-48: 48px;
+  --space-64: 64px;
+
+  /* 카드 elevation — 단일 톤으로 통일, 중첩된 서브 카드에는 쓰지 않는다 */
+  --shadow-sm: 0 1px 2px rgba(15, 31, 61, 0.05), 0 1px 1px rgba(15, 31, 61, 0.04);
+  --shadow-md: 0 8px 24px rgba(15, 31, 61, 0.08), 0 2px 6px rgba(15, 31, 61, 0.05);
+  --shadow-lg: 0 16px 40px rgba(15, 31, 61, 0.16);
+
   font: 16px/1.6 var(--sans);
   color: var(--text-primary);
   background: var(--bg);

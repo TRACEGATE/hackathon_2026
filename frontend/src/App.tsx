@@ -81,12 +81,17 @@ export default function App() {
 
   const currentMeeting = meetings.find((m) => m.id === currentMeetingId) ?? null;
 
+  // 홈 화면은 기존 앱 헤더/탭이 전혀 보이지 않는 완전히 독립적인 첫 페이지라
+  // app-shell(헤더+메인) 안에 끼워 넣지 않고 화면 전체를 그대로 대체한다.
+  if (view === "flow" && screen === "home") {
+    return <HomeScreen onStart={() => setScreen("input")} />;
+  }
+
   return (
     <div className="app-shell">
       <header className="app-topbar">
         <div className="app-topbar-brand">
           <span className="app-logo">VeilNote</span>
-          <span className="app-tagline">비식별화 회의록 에이전트</span>
         </div>
         <nav className="app-nav">
           <button
@@ -101,7 +106,7 @@ export default function App() {
             className={`app-nav-link ${view === "dashboard" ? "app-nav-link--active" : ""}`}
             onClick={() => setView("dashboard")}
           >
-            액션아이템 대시보드
+            대시보드
             {openItemCount > 0 && <span className="app-nav-badge">{openItemCount}</span>}
           </button>
         </nav>
@@ -112,7 +117,6 @@ export default function App() {
           <DashboardScreen meetings={meetings} onToggle={handleToggleActionItem} />
         ) : (
           <>
-            {screen === "home" && <HomeScreen onStart={() => setScreen("input")} />}
             {screen === "input" && (
               <InputScreen value={memoText} onChange={setMemoText} onSubmit={handleSubmit} error={error} />
             )}

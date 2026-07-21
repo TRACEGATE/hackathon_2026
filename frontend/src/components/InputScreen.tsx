@@ -48,7 +48,6 @@ export default function InputScreen({ value, onChange, onSubmit, error }: InputS
     isRecording,
     isModelLoading,
     modelLoadProgress,
-    isSpeaking,
     error: speechError,
     start,
     stop,
@@ -93,7 +92,8 @@ export default function InputScreen({ value, onChange, onSubmit, error }: InputS
               disabled={!isSupported || isRecording || isModelLoading}
               title={isSupported ? undefined : "이 브라우저에서는 온디바이스 음성 입력을 지원하지 않습니다."}
             >
-              🎙 음성으로 입력
+              <span className="voice-icon-dot" aria-hidden="true" />
+              음성으로 입력
             </button>
           </div>
         </div>
@@ -117,9 +117,7 @@ export default function InputScreen({ value, onChange, onSubmit, error }: InputS
         {isRecording && (
           <div className="voice-status-bar">
             <span className="voice-recording-dot" aria-hidden="true" />
-            <span className="voice-status-text">
-              {isSpeaking ? "말하고 있어요…" : "듣고 있어요…"} (음성은 이 기기 안에서만 처리됩니다)
-            </span>
+            <span className="voice-status-text">듣고있어요</span>
             <button type="button" className="btn-link voice-stop-btn" onClick={stop}>
               종료
             </button>
