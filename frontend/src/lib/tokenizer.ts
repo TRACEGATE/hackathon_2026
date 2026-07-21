@@ -1,4 +1,4 @@
-import type { DetectedEntity, EntityType, TokenMapping, TokenizeResult } from "../types";
+import type { Correction, DetectedEntity, EntityType, TokenMapping, TokenizeResult } from "../types";
 
 interface RawMatch {
   start: number;
@@ -364,4 +364,18 @@ export function restoreDeep<T>(value: T, mappings: TokenMapping[]): T {
     return result as T;
   }
   return value;
+}
+
+/**
+ * 백엔드가 알려준 전사 교정(before→after)을 텍스트에 순서대로 반영한다.
+ * corrections는 온디바이스 음성인식(STT) 오타를 AI가 문맥으로 고친 실제 단어 쌍이라,
+ * 토큰화 전 원문에도 그대로 적용된다.
+ */
+export function applyCorrections(text: string, corrections: Correction[]): string {
+  let result = text;
+  for (const { before, after } of corrections) {
+    if (!before) continue;
+    result = result.split(before).join(after);
+  }
+  return result;
 }

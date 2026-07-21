@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { MeetingProcessResult, Task, TokenizeResult } from "../types";
 import { buildOriginalSegments, buildTokenSegments } from "../lib/highlight";
+import { applyCorrections } from "../lib/tokenizer";
 import HighlightedText from "./HighlightedText";
 import ActionChecklist from "./ActionChecklist";
 
@@ -27,6 +28,11 @@ export default function ResultScreen({
 
   const originalSegments = buildOriginalSegments(originalText, tokenizeResult.mappings);
   const tokenSegments = buildTokenSegments(tokenizeResult.tokenizedText);
+
+  // 백엔드가 온디바이스 음성인식(STT) 오타를 문맥으로 교정한 내역을 원문에 그대로 반영한 버전.
+  const correctedText = applyCorrections(originalText, aiRestoredResult.corrections);
+  const correctedSegments = buildOriginalSegments(correctedText, tokenizeResult.mappings);
+  const hasCorrections = aiRestoredResult.corrections.length > 0;
 
   return (
     <div className="vn-page vn-page--result">
@@ -61,6 +67,13 @@ export default function ResultScreen({
             금액
           </span>
         </div>
+
+        {hasCorrections && (
+          <div className="result-correction-block">
+            <span className="result-compare-label">전사 교정 반영본 (AI가 음성인식 오타를 문맥으로 교정)</span>
+            <HighlightedText segments={correctedSegments} />
+          </div>
+        )}
       </section>
 
       <section className="result-step-card">
