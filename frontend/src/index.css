@@ -1,0 +1,68 @@
+:root {
+  --navy-900: #0f1f3d;
+  --navy-700: #1f3a5f;
+  --navy-500: #2f4d78;
+  --steel: #4a6fa5;
+  --gold: #b8912f;
+
+  --bg: #f7f8fa;
+  --surface: #ffffff;
+  --border: #e2e5eb;
+  --text-primary: #1a1f2b;
+  --text-secondary: #5b6472;
+  --text-muted: #8a92a0;
+
+  --highlight-org-bg: rgba(74, 111, 165, 0.14);
+  --highlight-org-border: rgba(74, 111, 165, 0.55);
+  --highlight-org-text: #2e4c78;
+
+  --highlight-person-bg: rgba(184, 145, 47, 0.16);
+  --highlight-person-border: rgba(184, 145, 47, 0.55);
+  --highlight-person-text: #8a6a1e;
+
+  --highlight-amount-bg: rgba(45, 122, 108, 0.14);
+  --highlight-amount-border: rgba(45, 122, 108, 0.5);
+  --highlight-amount-text: #235f52;
+
+  --radius: 10px;
+  --sans: "Pretendard", "Malgun Gothic", "Apple SD Gothic Neo", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+
+  font: 16px/1.6 var(--sans);
+  color: var(--text-primary);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 960px;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--sans);
+  color: var(--navy-900);
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+button {
+  font-family: var(--sans);
+  cursor: pointer;
+}
+
+textarea {
+  font-family: var(--sans);
+}
