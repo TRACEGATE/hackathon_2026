@@ -5,6 +5,7 @@ export interface Segment {
   type: EntityType | null;
 }
 
+
 function escapeRegExp(str: string): string {
   return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
